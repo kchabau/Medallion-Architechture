@@ -1,15 +1,64 @@
-# Future Enhancements - Normalized Schema
+# Medallion Architecture - Normalized Schema
 
 ## Overview
 
-This document outlines the planned enhancement to normalize the orders schema by introducing product and customer entities. This will create a more realistic e-commerce data model and enable richer analytics capabilities.
+This document outlines the normalized schema implementation for a medallion architecture (Bronze → Silver → Gold) with a realistic e-commerce data model. The architecture includes orders, customers, products, and order items entities.
 
-## Current State
+## Progress Status
 
-Currently, the pipeline only handles order-level data:
-- `bronze_orders` - Raw order data
-- `silver_orders` - Cleaned order data
-- `silver_orders_rejects` - Rejected orders
+### ✅ Completed (2 of 4 Main Tables)
+
+#### 1. **Orders** - COMPLETE
+- ✅ `bronze_orders` table (DDL)
+- ✅ `silver_orders` table (DDL)
+- ✅ `silver_orders_rejects` table (DDL)
+- ✅ `bronze/orders/bronze_orders_load.sql` - Data load script
+- ✅ `silver/orders/silver_orders_transform.sql` - Transformation with parsing logic
+- ✅ `silver/orders/silver_orders_rejects.sql` - Reject handling
+- ✅ Foreign key constraint to `silver_customers`
+
+**Features Implemented:**
+- Multi-format timestamp parsing (ISO 8601, slash format, dash format)
+- Decimal amount parsing with validation
+- Rejection logic for missing required fields
+- Upsert logic with recency-based updates
+- Composite primary key (order_id, source_system)
+
+#### 2. **Customers** - COMPLETE
+- ✅ `bronze_customers` table (DDL)
+- ✅ `silver_customers` table (DDL)
+- ✅ `silver_customers_rejects` table (DDL)
+- ✅ `bronze/customers/bronze_customers_load.sql` - Data load script with test cases
+- ✅ `silver/customers/silver_customers_transform.sql` - Transformation with data cleaning
+- ✅ `silver/customers/silver_customers_rejects.sql` - Reject handling
+- ✅ Foreign key from `silver_orders` to `silver_customers`
+
+**Features Implemented:**
+- Name title-casing (first and last name)
+- Email validation with regex
+- Phone number formatting (xxx-xxx-xxxx)
+- Rejection logic for missing customer_id, customer_name, or source_system
+- Composite primary key (customer_id, source_system)
+- Test data includes missing field scenarios
+
+### 🚧 Remaining (2 of 4 Main Tables)
+
+#### 3. **Order Items** - TODO
+- ⏳ `bronze_order_items` table (DDL)
+- ⏳ `silver_order_items` table (DDL)
+- ⏳ `silver_order_items_rejects` table (DDL)
+- ⏳ `bronze/order_items/bronze_order_items_load.sql`
+- ⏳ `silver/order_items/silver_order_items_transform.sql`
+- ⏳ `silver/order_items/silver_order_items_rejects.sql`
+- ⏳ Foreign keys to `silver_orders` and `silver_products`
+
+#### 4. **Products** - TODO
+- ⏳ `bronze_products` table (DDL)
+- ⏳ `silver_products` table (DDL)
+- ⏳ `silver_products_rejects` table (DDL)
+- ⏳ `bronze/products/bronze_products_load.sql`
+- ⏳ `silver/products/silver_products_transform.sql`
+- ⏳ `silver/products/silver_products_rejects.sql`
 
 ## Planned Enhancement: Option 2 - Normalized Schema
 
@@ -65,7 +114,6 @@ Currently, the pipeline only handles order-level data:
 - `customer_name` (VARCHAR)
 - `customer_email` (VARCHAR)
 - `customer_phone` (VARCHAR)
-- `customer_address` (VARCHAR)
 - `source_system` (VARCHAR) - Which system this customer came from
 - `ingest_batch_id`
 - `bronze_id` (lineage)
@@ -107,15 +155,20 @@ Currently, the pipeline only handles order-level data:
 3. Handle product updates (upsert by product_id + source_system)
 4. Track product price changes over time (if needed)
 
-### Customers Transformation
-1. Validate email format (basic regex)
-2. Handle customer updates (upsert by customer_id + source_system)
-3. Track customer data changes
+### Customers Transformation ✅ IMPLEMENTED
+1. ✅ Validate email format (basic regex)
+2. ✅ Handle customer updates (upsert by customer_id + source_system)
+3. ✅ Title-case customer names (first and last)
+4. ✅ Format phone numbers (xxx-xxx-xxxx)
+5. ✅ Reject rows with missing customer_id, customer_name, or source_system
 
-### Orders Transformation Updates
-1. Calculate `order_total` by summing `line_total` from `order_items`
-2. Validate `customer_id` exists in `silver_customers`
-3. Reject orders with invalid customer references
+### Orders Transformation ✅ IMPLEMENTED
+1. ✅ Multi-format timestamp parsing (ISO 8601, slash, dash formats)
+2. ✅ Decimal amount parsing with validation
+3. ✅ Validate `customer_id` exists in `silver_customers` (via FK constraint)
+4. ✅ Reject orders with missing required fields
+5. ✅ Upsert logic with recency-based updates
+6. ⏳ **TODO**: Calculate `order_total` by summing `line_total` from `order_items` (after order_items table is created)
 
 ## Rejects Tables
 
@@ -125,9 +178,30 @@ Currently, the pipeline only handles order-level data:
 - `silver_customers_rejects` - Invalid customer data
 
 ### Rejection Reasons
-- **Order Items**: Missing order_id, missing product_id, invalid quantity, invalid price, FK violations
-- **Products**: Missing product_id, invalid price format, missing required fields
-- **Customers**: Missing customer_id, invalid email format, missing required fields
+
+#### ✅ Orders - IMPLEMENTED
+- Missing order_id
+- Missing source_system
+- Missing customer_id
+- Both order_id and source_system missing
+
+#### ✅ Customers - IMPLEMENTED
+- Missing customer_id
+- Missing customer_name
+- Missing source_system
+- Combinations of missing required fields
+
+#### ⏳ Order Items - TODO
+- Missing order_id
+- Missing product_id
+- Invalid quantity
+- Invalid price
+- FK violations (order_id or product_id not found)
+
+#### ⏳ Products - TODO
+- Missing product_id
+- Invalid price format
+- Missing required fields
 
 ## Gold Layer (Future)
 
@@ -141,29 +215,55 @@ Once the 4 main silver tables are developed and stable, we can create a Gold lay
 
 ## Implementation Order
 
+### ✅ Phase 1: Orders & Customers (COMPLETE)
+1. ✅ **Schema Creation**
+   - ✅ Created bronze tables for orders and customers
+   - ✅ Created silver tables for orders and customers
+   - ✅ Created reject tables for orders and customers
+   - ✅ Created foreign key constraints
+
+2. ✅ **Bronze Load Scripts**
+   - ✅ `bronze/orders/bronze_orders_load.sql`
+   - ✅ `bronze/customers/bronze_customers_load.sql` (includes test data with missing fields)
+
+3. ✅ **Silver Transform Scripts**
+   - ✅ `silver/orders/silver_orders_transform.sql`
+   - ✅ `silver/customers/silver_customers_transform.sql`
+
+4. ✅ **Silver Reject Scripts**
+   - ✅ `silver/orders/silver_orders_rejects.sql`
+   - ✅ `silver/customers/silver_customers_rejects.sql`
+
+### 🚧 Phase 2: Products & Order Items (NEXT)
+
 1. **Schema Creation**
-   - Create bronze tables for order_items, products, customers
-   - Create silver tables for order_items, products, customers
-   - Create reject tables for each entity
+   - Create `bronze_products` table (DDL)
+   - Create `silver_products` table (DDL)
+   - Create `silver_products_rejects` table (DDL)
+   - Create `bronze_order_items` table (DDL)
+   - Create `silver_order_items` table (DDL)
+   - Create `silver_order_items_rejects` table (DDL)
+   - Create foreign key constraints:
+     - `silver_order_items.order_id` → `silver_orders.order_id`
+     - `silver_order_items.product_id` → `silver_products.product_id`
 
 2. **Bronze Load Scripts**
-   - `bronze/bronze_order_items_load.sql`
-   - `bronze/bronze_products_load.sql`
-   - `bronze/bronze_customers_load.sql`
+   - `bronze/products/bronze_products_load.sql`
+   - `bronze/order_items/bronze_order_items_load.sql`
 
 3. **Silver Transform Scripts**
-   - `silver/silver_order_items_transform.sql`
-   - `silver/silver_products_transform.sql`
-   - `silver/silver_customers_transform.sql`
-   - Update `silver/silver_orders_transform.sql` to calculate order_total
+   - `silver/products/silver_products_transform.sql`
+   - `silver/order_items/silver_order_items_transform.sql`
+   - Update `silver/orders/silver_orders_transform.sql` to calculate `order_total` from order_items
 
 4. **Silver Reject Scripts**
-   - `silver/silver_order_items_rejects.sql`
-   - `silver/silver_products_rejects.sql`
-   - `silver/silver_customers_rejects.sql`
+   - `silver/products/silver_products_rejects.sql`
+   - `silver/order_items/silver_order_items_rejects.sql`
 
-5. **Gold Layer** (After silver is stable)
-   - Create gold schema and transformation scripts
+### 📋 Phase 3: Gold Layer (Future)
+- Create gold schema and transformation scripts
+- Analytics-ready aggregations
+- Business metrics calculations
 
 ## Benefits of This Approach
 

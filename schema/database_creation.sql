@@ -1,0 +1,3 @@
+DROP DATABASE IF EXISTS testing;
+CREATE DATABASE testing;
+USE testing;

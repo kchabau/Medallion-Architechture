@@ -1,4 +1,7 @@
+-- Temporarily disable foreign key checks to allow TRUNCATE
+SET FOREIGN_KEY_CHECKS = 0;
 TRUNCATE TABLE silver_orders;
+SET FOREIGN_KEY_CHECKS = 1;
 
 -- Insert only valid rows (not meeting the "reject" criteria) into silver_orders
 INSERT INTO silver_orders

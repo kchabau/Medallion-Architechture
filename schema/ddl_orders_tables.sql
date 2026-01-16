@@ -1,5 +1,3 @@
-USE testing;
-
 -- BRONZE LAYER (RAW INGEST)
 -- Data arrives as-is and must not be cleaned
 -- REQUIREMENTS
@@ -15,7 +13,7 @@ CREATE TABLE bronze_orders (
     order_amount VARCHAR(50),
     order_status VARCHAR(50),
     order_ts VARCHAR(50),
-    source_system varchar(50),
+    source_system VARCHAR(50),
     ingest_ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     ingest_batch_id VARCHAR(50) -- batch identifier
 );
@@ -38,10 +36,12 @@ CREATE TABLE silver_orders (
     PRIMARY KEY (order_id, source_system)
 );
 
+-- FOREIGN KEYS
+-- INDEXES
 CREATE INDEX idx_silver_orders_order_ts ON silver_orders(order_ts);
 CREATE INDEX idx_silver_orders_customer_id ON silver_orders(customer_id);
 
--- REJECTS TABLE (FAILED INGESTIONS)
+-- REJECTS TABLE (FAILED INGESTION)
 -- silver_orders_rejects table
 DROP TABLE IF EXISTS silver_orders_rejects;
 
