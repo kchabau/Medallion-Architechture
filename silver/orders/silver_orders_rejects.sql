@@ -23,7 +23,7 @@ SELECT
   b.ingest_batch_id,
   CASE
     WHEN ((b.order_id IS NULL OR b.order_id = '') AND (b.source_system IS NULL OR b.source_system = ''))
-      THEN 'missing_order_id_and_source_system'
+      THEN 'missing_order_id_and_source_system' 
     WHEN (b.order_id IS NULL OR b.order_id = '')
       THEN 'missing_order_id'
     WHEN (b.source_system IS NULL OR b.source_system = '')

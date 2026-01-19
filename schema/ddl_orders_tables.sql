@@ -36,7 +36,6 @@ CREATE TABLE silver_orders (
     PRIMARY KEY (order_id, source_system)
 );
 
--- FOREIGN KEYS
 -- INDEXES
 CREATE INDEX idx_silver_orders_order_ts ON silver_orders(order_ts);
 CREATE INDEX idx_silver_orders_customer_id ON silver_orders(customer_id);
